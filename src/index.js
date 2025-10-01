@@ -49,23 +49,27 @@ export default {
       const historyJson = await env.CHAT_HISTORY.get(sessionId);
       let messages = historyJson ? JSON.parse(historyJson) : [];
 
-      // Construir contexto
-      let conversationContext = '';
+      // Construir el array de mensajes para la API
+      const apiMessages = [];
       
-      if (messages.length > 0) {
-        conversationContext = messages.map(msg => {
-          if (msg.role === 'user') return `Usuario: ${msg.content}`;
-          if (msg.role === 'assistant') return `Asistente: ${msg.content}`;
-          return '';
-        }).filter(m => m).join('\n\n') + '\n\n';
+      // Agregar historial previo
+      for (const msg of messages) {
+        apiMessages.push({
+          role: msg.role,
+          content: msg.content
+        });
       }
 
-      const systemPrompt = 'Eres un asistente útil. Cuando generes código, usa bloques markdown con el lenguaje (```javascript, ```python, etc.).\n\n';
-      const fullPrompt = systemPrompt + conversationContext + `Usuario: ${ask}\n\nAsistente:`;
+      // Agregar mensaje actual del usuario
+      apiMessages.push({
+        role: 'user',
+        content: ask
+      });
 
-      // Llamar al modelo
+      // Llamar al modelo con el formato correcto
       const response = await env.AI.run('@cf/openai/gpt-oss-120b', {
-        prompt: fullPrompt
+        instructions: 'Eres un asistente útil. Cuando generes código, usa bloques markdown con el lenguaje especificado (```javascript, ```python, etc.).',
+        input: apiMessages
       });
 
       const assistantMessage = response.response || 'Lo siento, no pude generar una respuesta.';
