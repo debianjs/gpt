@@ -72,7 +72,8 @@ export default {
         input: apiMessages
       });
 
-      const assistantMessage = response.response || 'Lo siento, no pude generar una respuesta.';
+      // Intentar diferentes formas de obtener la respuesta
+      const assistantMessage = response.response || response.result || response.choices?.[0]?.message?.content || response.content || JSON.stringify(response);
 
       // Guardar en historial
       messages.push({ role: 'user', content: ask });
