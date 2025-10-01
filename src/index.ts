@@ -59,36 +59,46 @@ export default {
       const historyJson = await env.CHAT_HISTORY.get(sessionId);
       let messages: Message[] = historyJson ? JSON.parse(historyJson) : [];
 
-      // Sistema prompt para formatear código
-      if (messages.length === 0) {
-        messages.push({
-          role: 'system',
-          content: 'Eres un asistente útil. Cuando generes código, usa bloques de código markdown con el lenguaje especificado. Por ejemplo: ```javascript o ```python'
-        });
+      // Construir el contexto completo de la conversación
+      let conversationContext = '';
+      
+      if (messages.length > 0) {
+        conversationContext = messages.map(msg => {
+          if (msg.role === 'user') return `Usuario: ${msg.content}`;
+          if (msg.role === 'assistant') return `Asistente: ${msg.content}`;
+          return '';
+        }).filter(m => m).join('\n\n') + '\n\n';
       }
 
-      // Agregar mensaje del usuario
+      // Agregar instrucción para formato de código
+      const systemPrompt = 'Cuando generes código, usa bloques de código markdown con el lenguaje especificado (```javascript, ```python, etc.).\n\n';
+      
+      // Construir el prompt completo con contexto
+      const fullPrompt = systemPrompt + conversationContext + `Usuario: ${ask}\n\nAsistente:`;
+
+      // Llamar al modelo de AI con el formato correcto
+      const response = await env.AI.run('@cf/openai/gpt-oss-120b', {
+        prompt: fullPrompt,
+        max_tokens: 1000,
+        temperature: 0.7
+      });
+
+      const assistantMessage = response.response || 'Lo siento, no pude generar una respuesta.';
+
+      // Guardar en historial
       messages.push({
         role: 'user',
         content: ask
       });
 
-      // Llamar al modelo de AI
-      const response = await env.AI.run('@cf/openai/gpt-oss-120b', {
-        messages: messages
-      });
-
-      const assistantMessage = response.response || 'Lo siento, no pude generar una respuesta.';
-
-      // Guardar respuesta en historial
       messages.push({
         role: 'assistant',
         content: assistantMessage
       });
 
-      // Limitar historial a últimos 20 mensajes (sin contar system)
-      if (messages.length > 21) {
-        messages = [messages[0], ...messages.slice(-20)];
+      // Limitar historial a últimos 10 intercambios (20 mensajes)
+      if (messages.length > 20) {
+        messages = messages.slice(-20);
       }
 
       // Guardar en KV (expira en 24 horas)
@@ -101,7 +111,7 @@ export default {
       return new Response(JSON.stringify({
         response: assistantMessage,
         session: sessionId,
-        messageCount: messages.length - 1
+        messageCount: messages.length
       }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
