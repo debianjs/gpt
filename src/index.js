@@ -72,8 +72,16 @@ export default {
         input: apiMessages
       });
 
-      // Intentar diferentes formas de obtener la respuesta
-      const assistantMessage = response.response || response.result || response.choices?.[0]?.message?.content || response.content || JSON.stringify(response);
+      // Extraer la respuesta del formato correcto
+      let assistantMessage = 'Lo siento, no pude generar una respuesta.';
+      
+      if (response.output && Array.isArray(response.output)) {
+        // Buscar el objeto con type: "message"
+        const messageOutput = response.output.find(item => item.type === 'message');
+        if (messageOutput && messageOutput.content && messageOutput.content[0]) {
+          assistantMessage = messageOutput.content[0].text;
+        }
+      }
 
       // Guardar en historial
       messages.push({ role: 'user', content: ask });
