@@ -1,15 +1,5 @@
-export interface Env {
-  AI: any;
-  CHAT_HISTORY: KVNamespace;
-}
-
-interface Message {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request, env) {
     const url = new URL(request.url);
     
     const corsHeaders = {
@@ -55,11 +45,11 @@ export default {
     }
 
     try {
-      // Obtener historial de conversación
+      // Obtener historial
       const historyJson = await env.CHAT_HISTORY.get(sessionId);
-      let messages: Message[] = historyJson ? JSON.parse(historyJson) : [];
+      let messages = historyJson ? JSON.parse(historyJson) : [];
 
-      // Construir el contexto completo de la conversación
+      // Construir contexto
       let conversationContext = '';
       
       if (messages.length > 0) {
@@ -70,38 +60,26 @@ export default {
         }).filter(m => m).join('\n\n') + '\n\n';
       }
 
-      // Agregar instrucción para formato de código
-      const systemPrompt = 'Cuando generes código, usa bloques de código markdown con el lenguaje especificado (```javascript, ```python, etc.).\n\n';
-      
-      // Construir el prompt completo con contexto
+      const systemPrompt = 'Eres un asistente útil. Cuando generes código, usa bloques markdown con el lenguaje (```javascript, ```python, etc.).\n\n';
       const fullPrompt = systemPrompt + conversationContext + `Usuario: ${ask}\n\nAsistente:`;
 
-      // Llamar al modelo de AI con el formato correcto
+      // Llamar al modelo
       const response = await env.AI.run('@cf/openai/gpt-oss-120b', {
-        prompt: fullPrompt,
-        max_tokens: 1000,
-        temperature: 0.7
+        prompt: fullPrompt
       });
 
       const assistantMessage = response.response || 'Lo siento, no pude generar una respuesta.';
 
       // Guardar en historial
-      messages.push({
-        role: 'user',
-        content: ask
-      });
+      messages.push({ role: 'user', content: ask });
+      messages.push({ role: 'assistant', content: assistantMessage });
 
-      messages.push({
-        role: 'assistant',
-        content: assistantMessage
-      });
-
-      // Limitar historial a últimos 10 intercambios (20 mensajes)
+      // Limitar a últimos 20 mensajes
       if (messages.length > 20) {
         messages = messages.slice(-20);
       }
 
-      // Guardar en KV (expira en 24 horas)
+      // Guardar en KV (24 horas)
       await env.CHAT_HISTORY.put(
         sessionId, 
         JSON.stringify(messages),
@@ -116,7 +94,7 @@ export default {
         headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
 
-    } catch (error: any) {
+    } catch (error) {
       return new Response(JSON.stringify({ 
         error: 'Error al procesar la solicitud',
         details: error.message 
