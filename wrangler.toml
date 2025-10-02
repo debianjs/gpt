@@ -1,4 +1,4 @@
-name = "ai-chat-api"
+name = "gpt-oss-bat"
 main = "src/index.js"
 compatibility_date = "2025-01-10"
 account_id = "035b8c5bce80f27fa0a51d1aab5fdc90"
