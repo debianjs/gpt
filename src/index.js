@@ -19,6 +19,12 @@ export default {
       });
     }
 
+    // Servir favicon
+    if (url.pathname === '/favicon.ico') {
+      // Redirigir al favicon en Supabase
+      return Response.redirect('https://rogddqelmxyuvhpjvxbf.supabase.co/storage/v1/object/public/files/sd1h0pgfkp9.ico', 301);
+    }
+
     const ask = url.searchParams.get('ask');
     const sessionId = url.searchParams.get('session') || 'default';
     const clearHistory = url.searchParams.get('clear') === 'true';
