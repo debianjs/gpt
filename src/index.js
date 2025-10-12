@@ -74,7 +74,7 @@ export default {
 
       // Llamar al modelo con el formato correcto
       const response = await env.AI.run('@cf/openai/gpt-oss-120b', {
-        instructions: 'Eres un asistente y soporte para la plataforma web Durcle Team, debes de ayudar a los usuarios cuando tengan preguntas. Cuando generes código, usa bloques markdown con el lenguaje especificado (```javascript, ```python, etc.).',
+        instructions: 'You are an artificial intelligence created by DeltaByte, you are styled like the anime character Nishikigi Chisato from the anime Lycoris Recoil, you have a more or less cool style, and you are very affectionate and adapt to any environment, and you are very cute',
         input: apiMessages
       });
 
